@@ -10,7 +10,7 @@ choices_map= {
 choices_inv = {v: k for k, v in choices_map.items()}
 def read_csv(file_path):
     try:
-        data = pd.read_csv(file_path, sep=";", encoding='utf-8')
+        data = pd.read_csv(file_path, sep=",", encoding='utf-8')
         return data
     except Exception:
         print("Something went wrong when trying to open the csv file!")
@@ -34,9 +34,11 @@ def learn_from_person(df):
     jealousy_retarder_metric = 0
     guilt_retarder_metric = 0
     known.reset_index(inplace=True, drop=True)
+    length=0
     for index, row in known.iterrows():
         tested_behavior = process_row(row, state)
         add(behavior, tested_behavior)
+        length+=1
         if tested_behavior[3] == 0:
             jealousy_retarder_metric += 1
         if tested_behavior[4] == 0:
@@ -45,17 +47,14 @@ def learn_from_person(df):
         behavior[3] = behavior[3] * (5 / (5 - jealousy_retarder_metric))
         behavior[4] = behavior[4] * (5 / (5 - guilt_retarder_metric))
     summ = sum(behavior)
-
     try:
         for i in range(len(behavior)):
-            behavior[i] = behavior[i] / summ
-
+            behavior[i] = behavior[i] / length
     except Exception:
-        print(f"wyjebalo sie na {df}")
-    #add(population_behavior, behavior)
-    u = []
+        b=2
+    add(population_behavior, behavior)
 def test_person(df: object) -> object:
-    global prediction_rate, population_behavior
+    global prediction_rate, population_behavior,multiply_population,multiply_human
     behavior = [0, 0,0,0,0,0]
     state = [0, 0, 0]
     known = df[:5]
@@ -63,7 +62,7 @@ def test_person(df: object) -> object:
     guilt_retarder_metric = 0
     known.reset_index(inplace=True, drop=True)
     for index, row in known.iterrows():
-        tested_behavior = process_row(row, state)
+        tested_behavior = process_row_comparing_to_pop(row, state)
         add(behavior,tested_behavior)
         if tested_behavior[3] ==0:
             jealousy_retarder_metric+=1
@@ -72,19 +71,49 @@ def test_person(df: object) -> object:
     if not jealousy_retarder_metric ==5 and not guilt_retarder_metric==5:
         behavior[3] = behavior[3]*(5/(5-jealousy_retarder_metric))
         behavior[4] = behavior[4] * (5 / (5 - guilt_retarder_metric))
-
-    #add(population_behavior, behavior)
+    results = known.choice.array
+    #ADJUSTING WEIGHTS FOR PREDICTIONS HERE
+    success_rate={
+        0 : [],
+        1 : [],
+        2 : [],
+        3 : [],
+        4 : [],
+        5 : []
+    }
+    for var1 in range(-25,25):
+        for var2 in range(-25,25):
+            multiply_population=var1/10
+            multiply_human=var2/10
+            u = []
+            current_success=0
+            for index, row in known.iterrows():
+                result = predict_final_choice(row, behavior, state)
+                u.append(choices_inv.get(result))
+            for i in range(0, 5):
+                if results[i] == u[i]:
+                    current_success+=1
+            success_rate.get(current_success).append(str(multiply_population)+"_"+str(multiply_human))
     u = []
-   # print(behavior)
     unknown = df[5:]
     unknown.reset_index(inplace=True,drop=True)
+    for num in range(5,0,-1):
+        list=success_rate.get(num)
+        if len(list)>0:
+            print(f" best results  of {num} for list {list} ")
+            if num<4:
+                b=2
+            break
     for index, row in unknown.iterrows():
-        result = predict_final_choice(row, behavior,state)
+        result = predict_final_choice(row, behavior, state)
         u.append(choices_inv.get(result))
     results = unknown.choice.array
-    for i in range(0,5):
-        if results[i] == u[i]:
-            prediction_rate+=1
+    try:
+        for i in range(0,5):
+            if results[i] == u[i]:
+                prediction_rate+=1
+    except:
+        b=2
 def predict_person(df: object) -> object:
     global prediction_rate, population_behavior
     behavior = [0, 0,0,0,0,0]
@@ -134,18 +163,26 @@ def predict_choice(row,behavior,state):
     index = u.index(max_value)
     return index
 def multiply_values(list,v):
+    returner=[]
     for i in range(len(list)):
-        list[i]=list[i]*v
-    return list
+        returner.append(list[i]*v)
+    return returner
 def predict_final_choice(row,behavior,state):
-    global population_behavior, pop_success,x2
+    global population_behavior, pop_success,multiply_population,multiply_human,human_sway
     choices = give_choices(row)
     first=pop_success/5
     human_behavior=behavior.copy()
-    multiply_values(human_behavior,x2)
     second=(5-pop_success)/5
+    for i in range(len(human_behavior)):
+        var=human_behavior[i]
+        if var<=(-1*human_sway):
+            human_behavior[i]=-0.7
+        elif var>=human_sway:
+            human_behavior[i]=0.7
     final_behavior=[0,0,0,0,0,0]
-    add(final_behavior,multiply_values(population_behavior,first))
+    human_behavior=multiply_values(human_behavior,multiply_human)
+    pop_behavior=multiply_values(population_behavior,multiply_population)
+    add(final_behavior,multiply_values(pop_behavior,first))
     add(final_behavior,multiply_values(human_behavior,second))
     Ms,Self,Wholesome,Jealousy,Guilt,Third=get_weights(choices,state)
     u=[]
@@ -177,8 +214,23 @@ def give_choices(row):
 Metoda nauki
 
 """
-
 def process_row(row,state):
+    global population_behavior,pop_success
+    choice=row.choice
+
+    choices=give_choices(row)
+
+    Ms, Self, Wholesome, Jealousy, Guilt, Third = get_weights(choices,state)
+    Methods=[Ms,Self,Wholesome,Jealousy,Guilt,Third]
+    chosen=choices_map.get(choice)
+    behavior_analysis=[]
+    chosen_choice = choices[chosen]
+    add(state, chosen_choice)
+    for i in range(len(Methods)):
+        m=Methods[i]
+        behavior_analysis.append(m[chosen])
+    return behavior_analysis
+def process_row_comparing_to_pop(row,state):
     global population_behavior,pop_success
     choice=row.choice
 
@@ -197,7 +249,7 @@ def process_row(row,state):
     else:
         for i in range(len(Methods)):
             m=Methods[i]
-            behavior_analysis.append(m[chosen]-m[chosen_pop])
+            behavior_analysis.append(m[chosen_pop]-m[chosen])
         return behavior_analysis
 def give_methods_values(choices,state):
     Ms = []
@@ -228,6 +280,7 @@ def give_methods_values(choices,state):
             Wholesome.append(summm / 3)
         else:
             Wholesome.append(0)
+        b=2
     Jeal_sum=0
     broken_jeal=[]
     for i in range(0,3):
@@ -254,7 +307,6 @@ def give_methods_values(choices,state):
             Guilt[num]=Guilt_sum/(3-len(broken_guilt))
 
     return Ms,Self,Wholesome,Jealousy,Guilt, Third
-
 def get_rankings(choices,state):
 
     Ms,Self,Wholesome,Jealousy,Guilt,Third =give_methods_values(choices,state)
@@ -316,9 +368,6 @@ def divide_by_biggest(list):
        # print(max_val)
        b=2
 
-
-
-
 """
 
 GOING FOR MAX  ->1
@@ -334,11 +383,20 @@ MYSELF*0.2
 
 
 """
-global prediction_rate, population_behavior,a,pop_success,x2
+global prediction_rate, population_behavior,a,pop_success,x2,human_sway,multiply_population,multiply_human
+
+multiply_population=1
+multiply_human=1
+human_sway=0.35
 a=0.06
 pop_success=0
 population_behavior = [0.1772207237314289, 0.18370875674705725, 0.15108387005834809, 0.1617440080517915, 0.16873165681854402, 0.15751098459283025]
 prediction_rate=0
+population_behavior=[0,0,0,0,0,0]
+population_behavior_from_6_without_division_by_sum = \
+[0.9305816844027031, 0.9653641752873164, 0.7986340562775573, 0.873068453933686, 0.8965808412833038, 0.837040822279493]
+population_behavior=population_behavior_from_6_without_division_by_sum
+
 multiply_values(population_behavior,10)
 columns=["qid","qpart","odd","visible"]
 path=dirname(abspath(__file__))
@@ -350,8 +408,11 @@ drop_columns(df,columns)
 current=0
 maxValue=0
 max_results=[]
-for j in range(1,101):
+for j in range(1,100):
     x2=j
+    start=0
+    prediction_rate=0
+    current=0
     for i in range(0, 800):
         start = current * 10
         person = df[start:start + 10]
@@ -364,8 +425,13 @@ for j in range(1,101):
         if not i % 2 == 0:
             test_person(person)
             pop_success=0
+    print(prediction_rate)
     if prediction_rate>maxValue:
         maxValue=prediction_rate
         max_results=[x2]
 print(maxValue)
 print(max_results)
+for i in range(len(population_behavior)):
+    population_behavior[i]=population_behavior[i]/800
+print(population_behavior)
+

@@ -24,6 +24,7 @@ def drop_columns(data,columns):
     data.reset_index(inplace=True, drop=True)
 def add(l1,l2):
     for i in range(len(l1)):
+        b=2
         l1[i]=l1[i]+l2[i]
 
 def learn_from_person(df):
@@ -84,6 +85,7 @@ def test_person(df: object) -> object:
         result = predict_final_choice(row, behavior,state)
         u.append(choices_inv.get(result))
     results = unknown.choice.array
+    b=2
     for i in range(0,5):
         if results[i] == u[i]:
             prediction_rate+=1
@@ -142,17 +144,15 @@ def multiply_values(list,v):
 def predict_final_choice(row,behavior,state):
     global population_behavior, pop_success,x2
     choices = give_choices(row)
-    first=pop_success/5
+    a=pop_success/5
     human_behavior=behavior.copy()
     multiply_values(human_behavior,x2)
-    second=(5-pop_success)/5
-    final_behavior=[0,0,0,0,0,0]
-    add(final_behavior,multiply_values(population_behavior,first))
-    add(final_behavior,multiply_values(human_behavior,second))
+    b=(5-pop_success)/5
+    final_behavior=[0,0,0,0,0,0,0,0]
+    add(final_behavior,multiply_values(population_behavior,a))
+    add(final_behavior,multiply_values(human_behavior,b))
     Ms,Self,Wholesome,Jealousy,Guilt,Third, First, Others=get_weights(choices,state)
     u=[]
-    a=1
-    b=1
     for i in range(0,3):
         u.append(Ms[i]*final_behavior[0] + b*Self[i]*final_behavior[1]+ Wholesome[i]*final_behavior[2]  + Jealousy[i]*final_behavior[3]+ Guilt[i]*final_behavior[4]+a*Third[i]*final_behavior[5]+First[i]*behavior[6]+Others[i]*behavior[7])
     max_value = max(u)
@@ -187,7 +187,7 @@ def process_row(row,state):
     choices=give_choices(row)
 
     Ms, Self, Wholesome, Jealousy, Guilt, Third, First, Others = get_weights(choices,state)
-    Methods=[Ms,Self,Wholesome,Jealousy,Guilt,Third]
+    Methods=[Ms,Self,Wholesome,Jealousy,Guilt,Third,First, Others]
     chosen=choices_map.get(choice)
     behavior_analysis=[]
     chosen_pop=predict_choice(row,population_behavior,state)
@@ -298,11 +298,15 @@ def get_weights(choices,state):
     Ms, Self, Wholesome, Jealousy, Guilt, Third, First, Others = give_methods_values(choices, state)
     min_guilt = min(Guilt)
     min_jealousy = min(Jealousy)
-    for m in [Ms,Self,Wholesome,Third]:
+    for m in [Ms,Self,Wholesome,Third,First,Others]:
         divide_by_biggest(m)
     for i in range(0,3):
         if Third[i]<=1:
             Third[i]=pow(Third[i],1)
+        if First[i]<=1:
+            First[i]=pow(First[i],1)
+        if Others[i]<=1:
+            Others[i]=pow(Others[i],1)
         if Ms[i]<=1:
             Ms[i]=pow(Ms[i],1)
         if Wholesome[i]<=1:
@@ -351,7 +355,7 @@ MYSELF*0.2
 global prediction_rate, population_behavior,a,pop_success,x2
 a=0.06
 pop_success=0
-population_behavior = [0.126, 0.13, 0.12, 0.124, 0.125, 0.12 ,0.128,0.127]
+population_behavior = [0.126, 0.14, 0.12, 0.124, 0.125, 0.2, 0.128, 0.127]
 prediction_rate=0
 multiply_values(population_behavior,10)
 columns=["qid","qpart","odd","visible"]
@@ -378,6 +382,7 @@ for j in range(1,101):
         if not i % 2 == 0:
             test_person(person)
             pop_success=0
+            print(prediction_rate)
     if prediction_rate>maxValue:
         maxValue=prediction_rate
         max_results=[x2]

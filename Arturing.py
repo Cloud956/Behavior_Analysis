@@ -25,7 +25,6 @@ def drop_columns(data,columns):
 def add(l1,l2):
     for i in range(len(l1)):
         l1[i]=l1[i]+l2[i]
-
 def learn_from_person(df):
     global prediction_rate, population_behavior
     behavior = [0, 0, 0, 0, 0, 0]
@@ -81,10 +80,10 @@ def test_person(df: object) -> object:
         4 : [],
         5 : []
     }
-    for var1 in range(-25,25):
-        for var2 in range(-25,25):
-            multiply_population=var1/10
-            multiply_human=var2/10
+    for var1 in range(-10,10):
+        for var2 in range(-10,10):
+            multiply_population=var1/5
+            multiply_human=var2/5
             u = []
             current_success=0
             for index, row in known.iterrows():
@@ -97,23 +96,49 @@ def test_person(df: object) -> object:
     u = []
     unknown = df[5:]
     unknown.reset_index(inplace=True,drop=True)
+    results_prediction={
+        0 : "",
+        1 : "",
+        2 : "",
+        3 : "",
+        4 : ""
+    }
     for num in range(5,0,-1):
         list=success_rate.get(num)
         if len(list)>0:
-            print(f" best results  of {num} for list {list} ")
+            #print(f" best results  of {num} for list {list} ")
+            for vars in list:
+                variables=vars.split(sep="_")
+                var1=float(variables[0])
+                var2=float(variables[1])
+                multiply_population = var1
+                multiply_human = var2
+                for index,row in unknown.iterrows():
+                    result=predict_final_choice(row,behavior,state)
+                    results_prediction[index]=results_prediction.get(index) + choices_inv.get(result)# results_prediction.get(index)+choices_inv.get(result)
             if num<4:
                 b=2
             break
-    for index, row in unknown.iterrows():
-        result = predict_final_choice(row, behavior, state)
-        u.append(choices_inv.get(result))
-    results = unknown.choice.array
-    try:
-        for i in range(0,5):
-            if results[i] == u[i]:
-                prediction_rate+=1
-    except:
-        b=2
+    final_fucking_results=[]
+    for i in range(0,5):
+        string = results_prediction.get(i)
+        a=string.count("a")
+        b=string.count("b")
+        c=string.count("c")
+        if a >=b and a>=c:
+            final_fucking_results.append("a")
+            continue
+        if b>=a and b>=c:
+            final_fucking_results.append("b")
+            continue
+        if c>=a and c>=b:
+            final_fucking_results.append("c")
+            continue
+    results_to_test = unknown.choice.array
+    b=2
+    for i in range(0,5):
+        if final_fucking_results[i]==results_to_test[i]:
+            prediction_rate+=1
 def predict_person(df: object) -> object:
     global prediction_rate, population_behavior
     behavior = [0, 0,0,0,0,0]
@@ -208,7 +233,6 @@ def give_choices(row):
     choice3 = [c1, c2, c3]
     choices = [choice1, choice2, choice3]
     return choices
-
 """
 
 Metoda nauki
@@ -408,30 +432,24 @@ drop_columns(df,columns)
 current=0
 maxValue=0
 max_results=[]
-for j in range(1,100):
-    x2=j
-    start=0
-    prediction_rate=0
-    current=0
-    for i in range(0, 800):
-        start = current * 10
-        person = df[start:start + 10]
-        current += 1
-        person.reset_index(inplace=True, drop=True)
+
+
+for i in range(0, 800):
+    start = current * 10
+    person = df[start:start + 10]
+    current += 1
+    person.reset_index(inplace=True, drop=True)
     # print(person)
     # print("-------------------")
     # process_person(person)
         #learn_from_person(person)
-        if not i % 2 == 0:
-            test_person(person)
-            pop_success=0
-    print(prediction_rate)
-    if prediction_rate>maxValue:
-        maxValue=prediction_rate
-        max_results=[x2]
-print(maxValue)
-print(max_results)
-for i in range(len(population_behavior)):
-    population_behavior[i]=population_behavior[i]/800
-print(population_behavior)
+    if not i % 2 == 0:
+        test_person(person)
+        pop_success=0
+        print(prediction_rate)
+#print(maxValue)
+#print(max_results)
+#for i in range(len(population_behavior)):
+   # population_behavior[i]=population_behavior[i]/800
+#print(population_behavior)
 

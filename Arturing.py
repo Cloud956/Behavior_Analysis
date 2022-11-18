@@ -53,10 +53,10 @@ def learn_from_person(df):
         b=2
     add(population_behavior, behavior)
 def test_person(df: object) -> object:
-    global prediction_rate, population_behavior,multiply_population,multiply_human
+    global prediction_rate, population_behavior,multiply_population,multiply_human,prediction_success_dictionary
     behavior = [0, 0,0,0,0,0,0,0]
     state = [0, 0, 0]
-    known = df[:5]
+    known = df[5:]
     jealousy_retarder_metric=0
     guilt_retarder_metric = 0
     known.reset_index(inplace=True, drop=True)
@@ -94,7 +94,7 @@ def test_person(df: object) -> object:
                     current_success+=1
             success_rate.get(current_success).append(str(multiply_population)+"_"+str(multiply_human))
     u = []
-    unknown = df[5:]
+    unknown = df[:5]
     unknown.reset_index(inplace=True,drop=True)
     results_prediction={
         0 : "",
@@ -106,7 +106,12 @@ def test_person(df: object) -> object:
     for num in range(5,0,-1):
         list=success_rate.get(num)
         if len(list)>0:
+            if num in prediction_success_dictionary:
+                prediction_success_dictionary[num] = prediction_success_dictionary.get(num)+1
+            else:
+                prediction_success_dictionary[num] = 1
             #print(f" best results  of {num} for list {list} ")
+
             for vars in list:
                 variables=vars.split(sep="_")
                 var1=float(variables[0])
@@ -116,8 +121,18 @@ def test_person(df: object) -> object:
                 for index,row in unknown.iterrows():
                     result=predict_final_choice(row,behavior,state)
                     results_prediction[index]=results_prediction.get(index) + choices_inv.get(result)# results_prediction.get(index)+choices_inv.get(result)
-            if num<4:
-                b=2
+            if num>10:
+                num_below=num-1
+                list_below=success_rate.get(num_below)
+                for vars in list_below:
+                    variables = vars.split(sep="_")
+                    var1 = float(variables[0])
+                    var2 = float(variables[1])
+                    multiply_population = var1
+                    multiply_human = var2
+                    for index, row in unknown.iterrows():
+                        result = predict_final_choice(row, behavior, state)
+                        results_prediction[index] = results_prediction.get(index) + choices_inv.get(result)
             break
     final_fucking_results=[]
     for i in range(0,5):
@@ -140,7 +155,7 @@ def test_person(df: object) -> object:
         if final_fucking_results[i]==results_to_test[i]:
             prediction_rate+=1
 def predict_person(df: object) -> object:
-    global prediction_rate, population_behavior, multiply_population, multiply_human, results_df
+    global prediction_rate, population_behavior, multiply_population, multiply_human, results_df, prediction_success_dictionary
     behavior = [0, 0, 0, 0, 0, 0, 0, 0]
     state = [0, 0, 0]
     unknown=df[df['choice'].isna()] ###
@@ -195,6 +210,10 @@ def predict_person(df: object) -> object:
     for num in range(5, 0, -1):
         list = success_rate.get(num)
         if len(list) > 0:
+            if num in prediction_success_dictionary:
+                prediction_success_dictionary[num] = prediction_success_dictionary.get(num)+1
+            else:
+                prediction_success_dictionary[num] = 1
             # print(f" best results  of {num} for list {list} ")
             for vars in list:
                 variables = vars.split(sep="_")
@@ -446,10 +465,12 @@ def get_weights(choices,state):
 
     return Ms, Self, Wholesome,Jealousy,Guilt, Third,First,Other
 def divide_by_biggest(list):
+    global power_variable
     try:
         max_val=max(list)
         for i in range(len(list)):
             list[i]=list[i] / max_val
+            list[i] =pow(list[i],power_variable)
     except:
         #print(list)
        # print(max_val)
@@ -464,8 +485,8 @@ MAX*0.3
 SUM*0.5
 MYSELF*0.2
 """
-global prediction_rate, population_behavior,a,pop_success,x2,human_sway,multiply_population,multiply_human
-
+global prediction_rate, population_behavior,a,pop_success,x2,human_sway,multiply_population,multiply_human,power_variable
+power_variable = 1
 multiply_population=1
 multiply_human=1
 human_sway=0.3
@@ -493,7 +514,8 @@ maxValue=0
 max_results=[]
 
 path_to_results=join(path_data,"results.csv")
-global results_df
+global results_df,prediction_success_dictionary
+prediction_success_dictionary=dict()
 results_df=pd.DataFrame(columns=['qid','qpart','prediction'])
 """
 
@@ -512,14 +534,15 @@ for i in range(0, 800):
     # print(person)
     # print("-------------------")
     # process_person(person)
-    predict_person(person)
-  #  if not i % 2 == 0:
-    #    test_person(person)
-    #    pop_success=0
-     #   print(prediction_rate)
+    #predict_person(person)
+    if not i % 2 == 0:
+       test_person(person)
+       pop_success=0
+       print(prediction_rate)
 #print(maxValue)
 #print(max_results)
 #for i in range(len(population_behavior)):
    # population_behavior[i]=population_behavior[i]/800
 #print(population_behavior)
-results_df.to_csv(path_to_results,index=False)
+#results_df.to_csv(path_to_results,index=False)
+print(prediction_success_dictionary)

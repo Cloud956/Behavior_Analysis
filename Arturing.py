@@ -10,7 +10,7 @@ choices_map= {
 choices_inv = {v: k for k, v in choices_map.items()}
 def read_csv(file_path):
     try:
-        data = pd.read_csv(file_path, sep=",", encoding='utf-8')
+        data = pd.read_csv(file_path, sep=";", encoding='utf-8')
         return data
     except Exception:
         print("Something went wrong when trying to open the csv file!")
@@ -289,10 +289,8 @@ def predict_final_choice(row,behavior,state):
     add(final_behavior,multiply_values(human_behavior,second))
     Ms,Self,Wholesome,Jealousy,Guilt,Third,First,Other,bs1,bs2,bs3=get_weights(choices,state)
     u=[]
-    a=1
-    b=1
     for i in range(0,3):
-        u.append(Ms[i]*final_behavior[0] + b*Self[i]*final_behavior[1]+ Wholesome[i]*final_behavior[2]  + Jealousy[i]*final_behavior[3]+ Guilt[i]*final_behavior[4]+a*Third[i]*final_behavior[5]+First[i]*final_behavior[6]+Other[i]*final_behavior[7]+bs1[i]*final_behavior[8]+bs2[i]*final_behavior[9]+bs3[i]*final_behavior[10])
+        u.append(0*Ms[i]*final_behavior[0] + 0.8*Self[i]*final_behavior[1]+ 0*Wholesome[i]*final_behavior[2] + 0*Jealousy[i]*final_behavior[3]+ 0*Guilt[i]*final_behavior[4]+1.3*Third[i]*final_behavior[5]+0.4*First[i]*final_behavior[6]+0*Other[i]*final_behavior[7]+0*bs1[i]*final_behavior[8]+0*bs2[i]*final_behavior[9]+0*bs3[i]*final_behavior[10])
     max_value = max(u)
     index = u.index(max_value)
     return index
@@ -542,19 +540,20 @@ for i in range(0, 800):
     person = df[start:start + 10]
     current += 1
     person.reset_index(inplace=True, drop=True)
-    # print(person)
-    # print("-------------------")
-    # process_person(person)
-    #learn_from_person(person)
-    #predict_person(person)
+        # print(person)
+        # print("-------------------")
+        # process_person(person)
+        #learn_from_person(person)
+        #predict_person(person)
     if not i % 2 == 0:
-       test_person(person)
-       pop_success=0
-       print(prediction_rate)
+        test_person(person)
+        pop_success=0
+
+print(prediction_rate)
 #print(maxValue)
 #print(max_results)
 #for i in range(len(population_behavior)):
     #population_behavior[i]=population_behavior[i]/800
-print(population_behavior)
+#print(population_behavior)
 #results_df.to_csv(path_to_results,index=False)
-print(prediction_success_dictionary)
+#print(prediction_success_dictionary)
